@@ -100,11 +100,11 @@ class RouterNode:
         """Fallback keyword-based routing."""
         user_input_lower = user_input.lower()
         
-        # Complaint keywords (highest priority)
+        # Complaint keywords (highest priority) - focus on emotional/problem language
         complaint_keywords = [
             "broken", "defective", "unacceptable", "angry", "frustrated",
             "complaint", "complain", "unhappy", "disappointed", "terrible",
-            "awful", "worst", "hate", "never again", "refund", "damaged"
+            "awful", "worst", "hate", "never again", "damaged"
         ]
         
         # API call keywords
@@ -113,11 +113,11 @@ class RouterNode:
             "order status", "delivery status", "what's the", "check status"
         ]
         
-        # Retrieval keywords
+        # Retrieval keywords - includes procedural questions
         retrieval_keywords = [
-            "policy", "documentation", "how do i", "where can i find",
-            "what is your", "procedure", "terms", "privacy", "warranty",
-            "about us", "faq", "guide", "manual", "instructions"
+            "policy", "policies", "documentation", "how do i", "where can i find",
+            "what is your", "what are your", "procedure", "terms", "privacy", "warranty",
+            "about us", "faq", "guide", "manual", "instructions", "shipping", "submit"
         ]
         
         # Conversational keywords
