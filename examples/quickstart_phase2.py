@@ -29,6 +29,7 @@ def quick_start():
         print("✅ Dependencies installed")
     except ImportError as e:
         print("❌ Missing dependencies")
+        print(f"   Details: {e}")
         print("\nPlease install Phase 2 dependencies:")
         print("  pip install chromadb sentence-transformers")
         print("\nOr install all at once:")
