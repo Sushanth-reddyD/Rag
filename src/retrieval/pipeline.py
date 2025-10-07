@@ -150,7 +150,7 @@ class SparseRetriever:
         )[:k]
         
         # Return documents with normalized scores
-        max_score = max(scores) if scores.max() > 0 else 1.0
+        max_score = max(scores) if max(scores) > 0 else 1.0
         results = [
             (self.documents[i], float(scores[i]) / max_score)
             for i in top_k_indices
