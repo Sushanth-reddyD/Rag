@@ -24,10 +24,10 @@ def main():
     # Test cases from requirements
     test_queries = [
         # Retrieval queries
-        ("What is your return policy?", "retrieval"),
+        ("which product do you recommend?", "retrieval"),
         ("How do I reset my password?", "retrieval"),
-        ("Where can I find the warranty information?", "retrieval"),
-        ("What are your shipping policies?", "retrieval"),
+        ("what places do you ship outside australia?", "retrieval"),
+        ("Can i return the product i bought it not from india in india?", "retrieval"),
         ("Tell me about your company's privacy policy", "retrieval"),
         ("How do I submit a refund request?", "retrieval"),
         

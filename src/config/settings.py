@@ -1,9 +1,11 @@
 """Configuration settings for LangGraph Router."""
 
 # Model configuration
-MODEL_NAME = "google/gemma-2-2b-it"  # Using Gemma 2 2B as it's more accessible than 270M
+MODEL_NAME = "bert-base-uncased"  # Using BERT Base for classification (more memory efficient)
+USE_FINE_TUNED = True  # Set to True to use fine-tuned model
+FINE_TUNED_MODEL_PATH = "./models/fine_tuned_router"
 DEVICE = "cpu"
-TEMPERATURE = 0.1
+TEMPERATURE = 0.2
 MAX_TOKENS = 150
 
 # Routing categories

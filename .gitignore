@@ -48,6 +48,14 @@ htmlcov/
 transformers_cache/
 huggingface/
 
+# Trained models (too large for git)
+models/
+*.safetensors
+*.bin
+*.ckpt
+*.pth
+*.pt
+
 # Environment variables
 .env
 .env.local

@@ -5,7 +5,9 @@ from .settings import (
     TEMPERATURE,
     MAX_TOKENS,
     ROUTING_CATEGORIES,
-    ROUTING_PRIORITY
+    ROUTING_PRIORITY,
+    USE_FINE_TUNED,
+    FINE_TUNED_MODEL_PATH
 )
 
 __all__ = [
@@ -14,5 +16,7 @@ __all__ = [
     "TEMPERATURE",
     "MAX_TOKENS",
     "ROUTING_CATEGORIES",
-    "ROUTING_PRIORITY"
+    "ROUTING_PRIORITY",
+    "USE_FINE_TUNED",
+    "FINE_TUNED_MODEL_PATH"
 ]
