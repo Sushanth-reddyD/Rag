@@ -67,19 +67,27 @@ class PDFParser(DocumentParser):
             pdf = pypdf.PdfReader(f)
             num_pages = len(pdf.pages)
             
+        with open(file_path, 'rb') as f:
+            pdf = pypdf.PdfReader(f)
+            num_pages = len(pdf.pages)
+            current_offset = 0
+
             for page_num, page in enumerate(pdf.pages):
-                page_text = page.extract_text()
+                # Guard against None from extract_text()
+                page_text = page.extract_text() or ""
                 text_parts.append(page_text)
-                
+
+                page_length = len(page_text)
                 sections.append({
                     'type': 'page',
                     'number': page_num + 1,
-                    'start_offset': sum(len(p) for p in text_parts[:-1]),
-                    'end_offset': sum(len(p) for p in text_parts)
+                    'start_offset': current_offset,
+                    'end_offset': current_offset + page_length
                 })
-        
+                current_offset += page_length
+
         full_text = "\n\n".join(text_parts)
-        
+
         metadata = {
             'source_type': 'pdf',
             'checksum': self._compute_checksum(file_path),
