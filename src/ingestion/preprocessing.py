@@ -128,16 +128,28 @@ class HTMLParser(DocumentParser):
         sections = []
         current_offset = 0
         
+        sections = []
+        search_pos = 0
+
         for element in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
             element_text = element.get_text(strip=True)
+            if not element_text:
+                continue
+
+            start_idx = text.find(element_text, search_pos)
+            if start_idx == -1:
+                continue
+
+            end_idx = start_idx + len(element_text)
             sections.append({
                 'type': 'heading',
                 'level': element.name,
                 'text': element_text,
-                'start_offset': current_offset
+                'start_offset': start_idx,
+                'end_offset': end_idx
             })
-            current_offset += len(element_text)
-        
+            search_pos = end_idx
+
         metadata = {
             'source_type': 'html',
             'checksum': self._compute_checksum(file_path),
