@@ -97,7 +97,7 @@ def quick_start():
     result = pipeline.ingest_document(str(sample_file))
     
     if result['status'] == 'success':
-        print(f"✅ Document ingested successfully")
+        print("✅ Document ingested successfully")
         print(f"   - Document ID: {result['document_id']}")
         print(f"   - Chunks created: {result['num_chunks']}")
     else:
