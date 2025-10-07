@@ -1,20 +1,54 @@
-# Core dependencies
-langchain==0.1.0
-langchain-core==0.1.10
-langchain-community==0.0.13
-langgraph==0.0.20
-llama-index==0.9.45
+# Customer Support RAG System - Requirements
+# Core dependencies for production use
 
-# Model dependencies
-transformers==4.36.0
-torch==2.1.0
-accelerate==0.25.0
+# ===== Core Framework =====
+streamlit>=1.50.0           # Web UI framework
+pydantic>=2.0.0            # Data validation
+python-dotenv>=1.0.0        # Environment management
 
-# Utilities
-pydantic==2.5.0
-python-dotenv==1.0.0
-typing-extensions==4.9.0
+# ===== LLM & Transformers =====
+transformers>=4.57.0        # HuggingFace transformers (BERT, Gemma)
+torch>=2.8.0               # PyTorch backend
+accelerate>=1.10.0          # Model loading optimization
+sentencepiece>=0.2.0        # Tokenization
+safetensors>=0.6.0          # Safe model serialization
 
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
+# ===== Embeddings =====
+sentence-transformers>=5.1.0  # Semantic embeddings (MiniLM)
+
+# ===== Vector Database =====
+chromadb>=0.4.22            # Vector storage
+hnswlib>=0.7.0             # Fast similarity search
+
+# ===== Lang Chain/Graph =====
+langchain>=0.3.27           # RAG utilities
+langchain-community>=0.3.30  # Community integrations
+langchain-core>=0.3.78      # Core abstractions
+langgraph>=0.6.8            # Workflow graphs
+
+# ===== Google Gemini (Optional) =====
+google-genai>=1.41.0        # Gemini API client
+
+# ===== ML & NLP =====
+scikit-learn>=1.7.0         # ML utilities
+numpy>=1.26.0              # Numerical operations
+nltk>=3.9.0                # NLP utilities
+
+# ===== Testing =====
+pytest>=7.4.0              # Testing framework
+pytest-asyncio>=0.21.0      # Async test support
+
+# ===== Data Handling =====
+pandas>=2.3.0              # Data manipulation (optional, for analysis)
+
+# ===== Document Processing (Optional) =====
+# Uncomment if you need to process these formats:
+# pypdf>=3.0.0              # PDF support
+# python-docx>=0.8.0        # DOCX support
+# beautifulsoup4>=4.12.0    # HTML parsing
+# lxml>=4.9.0               # XML/HTML parser
+
+# ===== Development (Optional) =====
+# black>=23.0.0             # Code formatting
+# flake8>=6.0.0             # Linting
+# ipython>=8.0.0            # Interactive Python

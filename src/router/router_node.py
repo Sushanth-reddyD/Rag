@@ -5,6 +5,7 @@ from typing import Dict, Any
 import numpy as np
 import os
 import json
+import time
 from langchain_community.llms import HuggingFacePipeline
 from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassification
 import torch
@@ -351,6 +352,9 @@ class RouterNode:
         
         print(f"\n🎯 Routing query: {user_input}")
         
+        # Start timing
+        router_start = time.time()
+        
         try:
             # Use fine-tuned model if available, otherwise use similarity-based routing
             if self.use_fine_tuned and self.id_to_category is not None:
@@ -420,15 +424,24 @@ class RouterNode:
             print(f"⚠️ Routing failed: {e}, using keyword-based fallback")
             decision = self._keyword_based_routing(user_input)
         
+        router_end = time.time()
+        router_time = (router_end - router_start) * 1000  # Convert to ms
+        
         print(f"✅ Routing Decision: {decision.category}")
         print(f"💡 Reasoning: {decision.reasoning}")
         print(f"🎚️ Confidence: {decision.confidence}")
+        print(f"⏱️  Router Time: {router_time:.2f} ms")
+        
+        # Get existing timing dict or create new one
+        timing = state.get('_timing', {})
+        timing['router_time'] = router_time
         
         return {
             "user_input": user_input,
             "routing_decision": decision.category,
             "reasoning": decision.reasoning,
-            "confidence": decision.confidence
+            "confidence": decision.confidence,
+            "_timing": timing
         }
 
 

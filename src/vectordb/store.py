@@ -44,7 +44,6 @@ class VectorStore:
         
         try:
             import chromadb
-            from chromadb.config import Settings
         except ImportError:
             raise ImportError(
                 "chromadb is required for vector storage. "
@@ -54,11 +53,10 @@ class VectorStore:
         # Create persist directory if it doesn't exist
         Path(self.persist_directory).mkdir(parents=True, exist_ok=True)
         
-        # Initialize client with persistence
-        self._client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=self.persist_directory
-        ))
+        # Initialize client with new API (PersistentClient)
+        self._client = chromadb.PersistentClient(
+            path=self.persist_directory
+        )
         
         # Get or create collection
         self._collection = self._client.get_or_create_collection(
@@ -282,9 +280,10 @@ class VectorStore:
         return self._collection.count()
     
     def persist(self) -> None:
-        """Persist the database to disk."""
-        if self._client is not None:
-            self._client.persist()
+        """Persist the database to disk (automatic with PersistentClient)."""
+        # PersistentClient automatically persists changes
+        # This method is kept for backward compatibility
+        pass
     
     def reset(self) -> None:
         """Delete all documents in the collection."""

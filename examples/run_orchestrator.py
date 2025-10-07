@@ -16,9 +16,9 @@ def main():
     print("🚀 LangGraph Orchestrator - Phase 1: Router Implementation")
     print("="*80)
     
-    # Initialize orchestrator
+    # Initialize orchestrator with auto-loading enabled
     print("\n📦 Initializing orchestrator...")
-    orchestrator = LangGraphOrchestrator()
+    orchestrator = LangGraphOrchestrator(auto_load_docs=True)
     print("✅ Orchestrator ready!\n")
     
     # Test cases from requirements

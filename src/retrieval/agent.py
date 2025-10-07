@@ -2,6 +2,7 @@
 
 from typing import Dict, Any, Optional
 from pathlib import Path
+import time
 
 from ..vectordb.store import VectorStore, HybridVectorStore
 from ..retrieval.pipeline import RetrievalPipeline, RetrievalConfig
@@ -15,7 +16,7 @@ class RetrievalAgent:
     
     def __init__(
         self,
-        collection_name: str = "documents",
+        collection_name: str = "product_docs",  # Changed from "documents" to generic name
         persist_directory: str = "./chroma_db",
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     ):
@@ -55,17 +56,21 @@ class RetrievalAgent:
             config=self.retrieval_config
         )
     
-    def handle_query(self, query: str, state: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_query(self, query: str, state: Dict[str, Any], gemma_generator=None) -> Dict[str, Any]:
         """
         Handle a retrieval query.
         
         Args:
             query: User query
             state: Current router state
+            gemma_generator: Optional GemmaGenerator for answer generation
             
         Returns:
             Updated state with retrieval results
         """
+        # Get timing dict from state
+        timing = state.get('_timing', {})
+        
         try:
             # Check if vector store has documents
             doc_count = self.vector_store.count()
@@ -79,14 +84,74 @@ class RetrievalAgent:
                     )
                 }
             
-            # Perform retrieval
+            # Perform retrieval with timing
+            print("🔍 Starting vector retrieval...")
+            retrieval_start = time.time()
+            
             retrieval_result = self.retrieval_pipeline.retrieve(query)
             
-            # Format response with citations
-            response = self._format_response(
-                query,
-                retrieval_result['results']
-            )
+            retrieval_end = time.time()
+            retrieval_time = (retrieval_end - retrieval_start) * 1000
+            timing['retrieval_time'] = retrieval_time
+            
+            print(f"⏱️  Retrieval Time: {retrieval_time:.2f} ms")
+            
+            # Extract reranking time if available
+            if 'reranking_latency_ms' in retrieval_result:
+                timing['reranking_time'] = retrieval_result['reranking_latency_ms']
+                print(f"⏱️  Re-ranking Time: {retrieval_result['reranking_latency_ms']:.2f} ms")
+            
+            # If Gemma generator is provided, use it for answer generation
+            generation_result = None
+            if gemma_generator is not None:
+                print("🤖 Generating answer with AI...")
+                
+                # Format chunks for generation
+                retrieved_chunks = [
+                    {
+                        'content': result['text'],
+                        'metadata': result['metadata']
+                    }
+                    for result in retrieval_result['results']
+                ]
+                
+                # Generate answer with timing
+                gen_start = time.time()
+                
+                generation_result = gemma_generator.generate(
+                    query=query,
+                    retrieved_chunks=retrieved_chunks
+                )
+                
+                gen_end = time.time()
+                gen_time = (gen_end - gen_start) * 1000
+                timing['generation_time'] = gen_time
+                timing['generation_model'] = generation_result.get('model', 'Unknown')
+                
+                print(f"⏱️  Generation Time: {gen_time:.2f} ms")
+                
+                # Format response with generated answer and citations
+                format_start = time.time()
+                
+                response = self._format_generated_response(
+                    query,
+                    generation_result,
+                    retrieval_result['results']
+                )
+                
+                format_end = time.time()
+                timing['formatting_time'] = (format_end - format_start) * 1000
+            else:
+                # Format response with citations (original behavior)
+                format_start = time.time()
+                
+                response = self._format_response(
+                    query,
+                    retrieval_result['results']
+                )
+                
+                format_end = time.time()
+                timing['formatting_time'] = (format_end - format_start) * 1000
             
             return {
                 **state,
@@ -96,14 +161,17 @@ class RetrievalAgent:
                     'num_results': retrieval_result['num_results'],
                     'latency_ms': retrieval_result['retrieval_latency_ms'],
                     'total_documents': doc_count
-                }
+                },
+                "generated_answer": generation_result.get('answer') if generation_result else None,
+                "_timing": timing
             }
             
         except Exception as e:
             return {
                 **state,
                 "response": f"Error during retrieval: {str(e)}",
-                "error": str(e)
+                "error": str(e),
+                "_timing": timing
             }
     
     def _format_response(
@@ -162,6 +230,75 @@ class RetrievalAgent:
         
         return "".join(response_parts)
     
+    def _format_generated_response(
+        self,
+        query: str,
+        generation_result: Dict[str, Any],
+        retrieval_results: list
+    ) -> str:
+        """
+        Format response with generated answer and citations.
+        
+        Args:
+            query: Original query
+            generation_result: Result from generator (may contain JSON)
+            retrieval_results: List of retrieval results
+            
+        Returns:
+            Formatted response string
+        """
+        import json
+        import re
+        
+        # Extract answer from generation_result
+        raw_answer = generation_result.get('answer', '')
+        
+        # Try to parse JSON if present
+        try:
+            # Look for JSON object in the response
+            json_match = re.search(r'\{[\s\S]*"answer"[\s\S]*:[\s\S]*"([^"]*)"[\s\S]*\}', raw_answer)
+            if json_match:
+                # Try to extract just the answer value
+                answer_text = json_match.group(1)
+            else:
+                # Try direct JSON parse
+                parsed = json.loads(raw_answer)
+                answer_text = parsed.get('answer', raw_answer)
+        except:
+            # If JSON parsing fails, use raw answer
+            answer_text = raw_answer.strip()
+            # Remove JSON artifacts if present
+            answer_text = re.sub(r'^\{.*?"answer".*?:\s*"', '', answer_text)
+            answer_text = re.sub(r'"\s*\}\s*$', '', answer_text)
+        
+        response_parts = [
+            f"📝 Generated Answer:\n",
+            f"{answer_text}\n\n",
+            f"{'='*60}\n",
+            f"📚 Sources (Top {min(3, len(retrieval_results))}):\n\n"
+        ]
+        
+        for result in retrieval_results[:3]:
+            rank = result['rank']
+            text = result['text']
+            score = result['score']
+            metadata = result['metadata']
+            
+            # Extract source information
+            source = metadata.get('source', 'Unknown source')
+            title = metadata.get('title', Path(source).stem if source else 'Untitled')
+            
+            response_parts.append(
+                f"[{rank}] {title} (Relevance: {score:.2f})\n"
+            )
+        
+        response_parts.append(
+            f"\n💡 Generated using {generation_result.get('model', 'AI Model')} "
+            f"with {len(retrieval_results)} sources"
+        )
+        
+        return "".join(response_parts)
+    
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about the retrieval system."""
         return {
@@ -171,12 +308,13 @@ class RetrievalAgent:
         }
 
 
-def create_retrieval_agent_node(agent: Optional[RetrievalAgent] = None):
+def create_retrieval_agent_node(agent: Optional[RetrievalAgent] = None, gemma_generator=None):
     """
     Create a retrieval agent node for LangGraph.
     
     Args:
         agent: Optional RetrievalAgent instance (created if not provided)
+        gemma_generator: Optional GemmaGenerator for answer generation
         
     Returns:
         Agent node function
@@ -193,16 +331,22 @@ def create_retrieval_agent_node(agent: Optional[RetrievalAgent] = None):
         print(f"Query: {query}")
         print(f"Routing: {state.get('routing_decision', 'N/A')}")
         print(f"Reasoning: {state.get('reasoning', 'N/A')}")
+        if gemma_generator:
+            print(f"🤖 Answer Generation: ENABLED (Gemma 3 270M)")
         print(f"{'='*60}\n")
         
-        # Handle the query
-        result = agent.handle_query(query, state)
+        # Handle the query with optional Gemma generation
+        result = agent.handle_query(query, state, gemma_generator=gemma_generator)
         
         # Print results summary
         if 'retrieval_results' in result:
             num_results = len(result['retrieval_results'])
             latency = result.get('retrieval_metadata', {}).get('latency_ms', 0)
-            print(f"✅ Retrieved {num_results} results in {latency:.2f}ms\n")
+            print(f"✅ Retrieved {num_results} results in {latency:.2f}ms")
+            if gemma_generator and 'generated_answer' in result:
+                print(f"✅ Generated answer with Gemma 3 270M\n")
+            else:
+                print()
         
         return result
     

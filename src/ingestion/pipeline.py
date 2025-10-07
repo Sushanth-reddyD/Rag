@@ -196,6 +196,49 @@ class IngestionPipeline:
         
         return self.ingest_batch(file_paths, {'source_directory': str(dir_path)})
     
+    def load_single_document(self, file_path: str) -> List[ChunkMetadata]:
+        """
+        Load a single document and return chunks (for document_loader.py)
+        
+        Args:
+            file_path: Path to document file
+            
+        Returns:
+            List of ChunkMetadata objects created from the document
+        """
+        try:
+            # Stage 1: Preprocessing / Parsing
+            text, parsed_metadata = self.preprocessor.process_document(file_path)
+            
+            # Clean text
+            cleaned_text = self.preprocessor.clean_text(text)
+            
+            # Stage 2: Chunking
+            chunks = self.chunker.chunk_document(cleaned_text, parsed_metadata)
+            
+            # Stage 3: Metadata Enrichment
+            enriched_chunks = []
+            for i, chunk in enumerate(chunks):
+                # Link chunks to each other
+                if i > 0:
+                    chunk.metadata['previous_chunk_id'] = f"{parsed_metadata['document_id']}_chunk_{i-1}"
+                if i < len(chunks) - 1:
+                    chunk.metadata['next_chunk_id'] = f"{parsed_metadata['document_id']}_chunk_{i+1}"
+                
+                enriched_chunks.append(chunk)
+            
+            # Stage 4 & 5: Embedding & Storage
+            chunk_ids = self.vector_store.add_chunks(enriched_chunks, parsed_metadata)
+            
+            # Persist
+            self.vector_store.vector_store.persist()
+            
+            return enriched_chunks
+            
+        except Exception as e:
+            print(f"Error loading document {file_path}: {str(e)}")
+            return []
+    
     def get_ingestion_stats(self) -> Dict[str, Any]:
         """
         Get statistics about ingestion operations.
