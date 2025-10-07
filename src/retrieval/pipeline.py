@@ -399,9 +399,12 @@ class RetrievalPipeline:
             normalized_query = query
         
         # Step 2: Query expansion (optional)
-        queries = [normalized_query]
         if self.config.expand_query:
-            queries.extend(self.query_processor.expand_query(normalized_query))
+            queries = list(dict.fromkeys(
+                self.query_processor.expand_query(normalized_query)
+            ))
+        else:
+            queries = [normalized_query]
         
         # Step 3: Initial retrieval
         all_results = []
