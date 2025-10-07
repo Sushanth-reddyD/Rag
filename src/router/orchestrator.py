@@ -1,6 +1,6 @@
 """LangGraph orchestrator implementation."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from langgraph.graph import StateGraph, END
 
 from .router_node import get_router
@@ -28,9 +28,27 @@ def create_placeholder_agent(agent_name: str):
 class LangGraphOrchestrator:
     """Main orchestrator using LangGraph."""
     
-    def __init__(self):
-        """Initialize the orchestrator."""
+    def __init__(self, use_real_retrieval: bool = False):
+        """
+        Initialize the orchestrator.
+        
+        Args:
+            use_real_retrieval: If True, use actual retrieval agent with vector DB
+        """
         self.router = get_router()
+        self.use_real_retrieval = use_real_retrieval
+        self.retrieval_agent = None
+        
+        if use_real_retrieval:
+            try:
+                from ..retrieval.agent import RetrievalAgent, create_retrieval_agent_node
+                self.retrieval_agent = RetrievalAgent()
+                print("✅ Real retrieval agent initialized with vector database")
+            except ImportError as e:
+                print(f"⚠️ Could not initialize real retrieval agent: {e}")
+                print("Falling back to placeholder agent")
+                self.use_real_retrieval = False
+        
         self.graph = self._build_graph()
     
     def _build_graph(self) -> StateGraph:
@@ -41,10 +59,20 @@ class LangGraphOrchestrator:
         # Add router node
         workflow.add_node("router", self.router.route)
         
-        # Add placeholder agent nodes
+        # Add agent nodes
         workflow.add_node("complaint_agent", create_placeholder_agent("COMPLAINT"))
         workflow.add_node("api_call_agent", create_placeholder_agent("API CALL"))
-        workflow.add_node("retrieval_agent", create_placeholder_agent("RETRIEVAL"))
+        
+        # Add retrieval agent (real or placeholder)
+        if self.use_real_retrieval and self.retrieval_agent:
+            from ..retrieval.agent import create_retrieval_agent_node
+            workflow.add_node(
+                "retrieval_agent",
+                create_retrieval_agent_node(self.retrieval_agent)
+            )
+        else:
+            workflow.add_node("retrieval_agent", create_placeholder_agent("RETRIEVAL"))
+        
         workflow.add_node("conversational_agent", create_placeholder_agent("CONVERSATIONAL"))
         
         # Set entry point

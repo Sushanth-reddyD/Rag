@@ -70,3 +70,12 @@ Thumbs.db
 # Temporary files
 /tmp/
 *.tmp
+
+# Vector DB and data directories
+data/documents/*
+data/metadata/*
+!data/documents/.gitkeep
+!data/metadata/.gitkeep
+chroma_db/
+*.faiss
+*.index
